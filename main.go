@@ -21,6 +21,8 @@ type OctaveReq struct {
 
 // 返回结果
 type OctaveResp struct {
+	Code   int     `json:"code"`
+	Msg    string  `json:"msg"`
 	Result float32 `json:"result"`
 }
 
@@ -32,7 +34,22 @@ type Version struct {
 
 // 处理算法调用
 func octaveHandler(c *gin.Context) {
-
+	var req OctaveReq
+	var resp OctaveResp
+	if err := c.ShouldBind(&req); err != nil {
+		resp.Code = 10000
+		resp.Msg = "请求参数错误"
+		c.JSON(http.StatusOK, resp)
+	}
+	err := c.SaveUploadedFile(req.Matrix, req.Matrix.Filename)
+	if err != nil {
+		resp.Code = 10001
+		resp.Msg = "文件保存错误"
+		c.JSON(http.StatusOK, resp)
+	}
+	resp.Code = 0
+	resp.Result = 12.8 //TODO
+	c.JSON(http.StatusOK, resp)
 }
 
 // 版本号定义

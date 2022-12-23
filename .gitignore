@@ -16,5 +16,6 @@
 .idea
 .vscode
 # app bin file
+/matrix.csv
 /octaveserver
 /octaveserver.exe

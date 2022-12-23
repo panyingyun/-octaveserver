@@ -1,6 +1,13 @@
-FROM golang:alpine AS builder
+FROM dockerproxy.com/library/golang:1.19-alpine AS builder
 
 LABEL stage=gobuilder
+
+ENV HTTP_PROXY ""
+ENV HTTPS_PROXY ""
+ENV NO_PROXY ""
+ENV http_proxy ""
+ENV https_proxy ""
+ENV no_proxy ""
 
 ENV CGO_ENABLED 0
 ENV GOPROXY https://goproxy.cn,direct
@@ -14,18 +21,19 @@ ADD go.mod .
 ADD go.sum .
 RUN go mod download
 COPY . .
-COPY ./etc /app/etc
-RUN go build -ldflags="-s -w" -o /app/digtwin digtwin.go
+RUN go build -ldflags="-s -w" -o /app/octaveserver main.go
 
 
-FROM scratch
+FROM harbor.yuansuan.cn/gnuoctave/ysoctave:7.2.0
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /usr/share/zoneinfo/Asia/Shanghai /usr/share/zoneinfo/Asia/Shanghai
 ENV TZ Asia/Shanghai
 
-WORKDIR /app
-COPY --from=builder /app/digtwin /app/digtwin
-COPY --from=builder /app/etc /app/etc
 
-CMD ["./digtwin", "-f", "etc/digtwin-api.yaml"]
+WORKDIR /app
+COPY --from=builder /app/octaveserver /app/octaveserver
+COPY appsquare appsquare
+COPY appsum appsum
+
+CMD ["./octaveserver"]

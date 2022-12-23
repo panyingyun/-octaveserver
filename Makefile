@@ -9,6 +9,7 @@ env:
 	GOPROXY=https://goproxy.cn/,direct go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 docker:
+	docker rm -f octaveserver
 	docker build -t octaveserver:v1.0  .
 	docker run --restart=always -itd \
 	-p 8630:8630 --name octaveserver octaveserver:v1.0

@@ -23,7 +23,7 @@ docker run --restart=always -itd \
 -p 8630:8630 --name octaveserver octaveserver:v1.0
 ```
 ### 测试
-（1） 查看版本号
+（1）查看版本号
 ```bash
  curl -v http://localhost:8630/version
 
@@ -37,13 +37,34 @@ docker run --restart=always -itd \
 {"version":"v1.0.1","updateat":"2022-12-23"}
 ```
 
-（2） 调用求和算法
+（2）调用求和算法
 ```bash
 curl -X POST -v --form calc=1 --form "matrix=@./matrix.csv" http://localhost:8630/octave
+
+> 
+* We are completely uploaded and fine
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Content-Type: application/json; charset=utf-8
+< Date: Fri, 23 Dec 2022 09:18:23 GMT
+< Content-Length: 32
+< 
+* Connection #0 to host localhost left intact
+{"code":0,"msg":"","result":100}
 ```
 
-（3） 调用求平方和算法
+（3）调用求平方和算法
 ```bash
 curl -X POST -v --form calc=2 --form "matrix=@./matrix.csv" http://localhost:8630/octave
+
+* We are completely uploaded and fine
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< Content-Type: application/json; charset=utf-8
+< Date: Fri, 23 Dec 2022 09:19:34 GMT
+< Content-Length: 32
+< 
+* Connection #0 to host localhost left intact
+{"code":0,"msg":"","result":642}
 ```
 

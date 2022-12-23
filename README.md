@@ -1,9 +1,8 @@
 # octaveserver
+该案例提供通过HTTP请求上传文件并调用matlab算法的算例
 
 ### 说明
-
 该服务将Matlab算法封装为服务并提供Restful-HTTP接口
-
 1. server-上传CSV文件，文件中包括N行M列个元素，同时传入控制参数，控制调用算法的类型。
 2. matlab-实际调用Matlab算法(type=1 求和  type=2 求平方和)
 3. matlab-返回结果
@@ -39,32 +38,24 @@ docker run --restart=always -itd \
 
 （2）调用求和算法
 ```bash
+cd tests
+
 curl -X POST -v --form calc=1 --form "matrix=@./matrix.csv" http://localhost:8630/octave
 
-> 
-* We are completely uploaded and fine
-* Mark bundle as not supporting multiuse
-< HTTP/1.1 200 OK
-< Content-Type: application/json; charset=utf-8
-< Date: Fri, 23 Dec 2022 09:18:23 GMT
-< Content-Length: 32
-< 
-* Connection #0 to host localhost left intact
+返回结果：
 {"code":0,"msg":"","result":100}
 ```
 
 （3）调用求平方和算法
 ```bash
+
+cd tests
+
 curl -X POST -v --form calc=2 --form "matrix=@./matrix.csv" http://localhost:8630/octave
 
-* We are completely uploaded and fine
-* Mark bundle as not supporting multiuse
-< HTTP/1.1 200 OK
-< Content-Type: application/json; charset=utf-8
-< Date: Fri, 23 Dec 2022 09:19:34 GMT
-< Content-Length: 32
-< 
-* Connection #0 to host localhost left intact
+返回结果：
 {"code":0,"msg":"","result":642}
 ```
 
+### 结论
+该案例提供通过HTTP请求上传文件并调用matlab算法的算例

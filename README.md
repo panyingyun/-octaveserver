@@ -18,6 +18,7 @@ docker build -t octaveserver:v1.0  .
 ### 运行
 
 ```bash
+docker rm -f octaveserver
 docker run --restart=always -itd \
 -p 8630:8630 --name octaveserver octaveserver:v1.0
 ```
@@ -39,7 +40,7 @@ docker run --restart=always -itd \
 }
 ```
 
-（2）调用求和算法
+（2）调用Dat转换算法
 ```bash
 cd tests
 

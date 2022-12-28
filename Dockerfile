@@ -33,7 +33,6 @@ ENV TZ Asia/Shanghai
 
 WORKDIR /app
 COPY --from=builder /app/octaveserver /app/octaveserver
-COPY appsquare appsquare
-COPY appsum appsum
+COPY convert convert
 
 CMD ["./octaveserver"]

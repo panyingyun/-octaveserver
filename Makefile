@@ -14,6 +14,12 @@ docker:
 	docker run --restart=always -itd \
 	-p 8630:8630 --name octaveserver octaveserver:v1.0
 
+push:
+	docker tag octaveserver:v1.0  1.117.192.82:8666/gnuoctave/octaveserver:v1.0
+	docker push 1.117.192.82:8666/gnuoctave/octaveserver:v1.0
+	docker rm -f octaveserver
+	docker run --restart=always -itd \
+	-p 8630:8630 --name octaveserver harbor.yuansuan.cn/gnuoctave/octaveserver:v1.0
 
 build:
 	go mod tidy

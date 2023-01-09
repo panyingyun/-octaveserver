@@ -1,46 +1,38 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 const (
-	Server_Version  = "v1.0.2"
+	Server_Version  = "v1.1.1"
 	Server_UpdateAt = "2022-12-28"
 )
 
-// ExecString
-func ExecString(workDir string, cmd string) (string, error) {
-	log.Println("cmd = ", cmd)
-	command := exec.Command("sh", "-c", cmd)
-	command.Dir = workDir
-	bytes, err := command.CombinedOutput()
-	return string(bytes), err
+// inputs 为 输入文件数组
+type ConvertReq struct {
+	Inputs []*multipart.FileHeader `form:"inputs"  json:"inputs"`
 }
 
-// Type =1 静力分析  = 3 确定性疲劳分析  = 4 防腐面积计算
-// matrix 为 输入矩阵文件
-// Effective 为输入csv控制参数文件
-type ConvertReq struct {
-	Type      int64                 `form:"type", json:"type"`
-	Matrix    *multipart.FileHeader `form:"matrix"  json:"matrix"`
-	Effective *multipart.FileHeader `form:"effective"  json:"effective"`
+type DatFile struct {
+	DATName    string `json:"datname"`
+	DATContent string `json:"datcontent"`
 }
 
 // 返回结果
 type ConvertResp struct {
-	Code       int    `json:"code"`
-	Msg        string `json:"msg"`
-	DATName    string `json:"datname"`
-	DATContent string `json:"datcontent"`
+	Code     int       `json:"code"`
+	Msg      string    `json:"msg"`
+	DatFiles []DatFile `json:"datfiles"`
 }
 
 // 定义版本号
@@ -53,44 +45,66 @@ type Version struct {
 func convertHandler(c *gin.Context) {
 	var req ConvertReq
 	var resp ConvertResp
+
 	// 参数解析
-	if err := c.ShouldBind(&req); err != nil {
+	if err := c.ShouldBindWith(&req, binding.FormMultipart); err != nil {
 		resp.Code = 10000
 		resp.Msg = "请求参数错误"
 		c.JSON(http.StatusOK, resp)
 	}
-	err := c.SaveUploadedFile(req.Matrix, filepath.Join("convert", req.Matrix.Filename))
-	if err != nil {
-		resp.Code = 10001
-		resp.Msg = "文件保存错误"
-		c.JSON(http.StatusOK, resp)
+
+	// 解析多输入csv文件
+	var filename string
+	form, _ := c.MultipartForm()
+	files := form.File["inputs"]
+	for _, file := range files {
+		filename = file.Filename
+		log.Println("req filename = ", filename)
+		err := c.SaveUploadedFile(file, filepath.Join("convert", filename))
+		if err != nil {
+			resp.Code = 10001
+			resp.Msg = "文件保存错误"
+			c.JSON(http.StatusOK, resp)
+		}
 	}
-	err = c.SaveUploadedFile(req.Effective, filepath.Join("convert", req.Effective.Filename))
-	if err != nil {
-		resp.Code = 10001
-		resp.Msg = "文件保存错误"
-		c.JSON(http.StatusOK, resp)
-	}
-	log.Println("req type = ", req.Type)
-	log.Println("req matrix = ", req.Matrix.Filename)
-	log.Println("req Effective = ", req.Effective.Filename)
-	if req.Type != 1 && req.Type != 3 && req.Type != 4 {
-		resp.Code = 10000
-		resp.Msg = "请求参数错误, Type 必须为1或者3或4"
-		c.JSON(http.StatusOK, resp)
-	}
+
 	// 算法运行
-	cmdstr := fmt.Sprintf("octave-cli  Main.m  %v", req.Type)
+	cmdstr := "octave-cli  Main.m"
 	ret, err := ExecString("/app/convert", cmdstr)
 	log.Println("ret = ", ret)
-	log.Println("err = ", err)
-	// Dat文件读取
-	datFilename := filepath.Join("convert", "Static PSI", "JCNINP.DAT")
-	dat, err := os.ReadFile(datFilename)
-	log.Println("err = ", err)
-	resp.DATName = "JCNINP.DAT"
-	resp.DATContent = string(dat)
+	if err != nil {
+		log.Println("err = ", err)
+		resp.Code = 10002
+		resp.Msg = "算法运行错误"
+		c.JSON(http.StatusOK, resp)
+	}
+
+	// 扫描当前目录下的Dat文件并使用数组返回
+	var DatFiles []DatFile
+	filenames, err := FindDatName("convert")
+	if err != nil {
+		log.Println("err = ", err)
+		resp.Code = 10003
+		resp.Msg = "文件读取错误"
+		c.JSON(http.StatusOK, resp)
+	}
+	for _, name := range filenames {
+		datFilename := filepath.Join("convert", name)
+		dat, err := os.ReadFile(datFilename)
+		if err != nil {
+			log.Println("err = ", err)
+			resp.Code = 10003
+			resp.Msg = "文件读取错误"
+			c.JSON(http.StatusOK, resp)
+		}
+		var datfile DatFile
+		datfile.DATName = name
+		datfile.DATContent = string(dat)
+		DatFiles = append(DatFiles, datfile)
+	}
 	resp.Code = 0
+	resp.Msg = "Success"
+	resp.DatFiles = DatFiles
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -107,4 +121,35 @@ func main() {
 	r.POST("/convert", convertHandler)
 	r.GET("/version", versionHandler)
 	r.Run(":8630")
+}
+
+// ExecString
+func ExecString(workDir string, cmd string) (string, error) {
+	log.Println("cmd = ", cmd)
+	command := exec.Command("sh", "-c", cmd)
+	command.Dir = workDir
+	bytes, err := command.CombinedOutput()
+	return string(bytes), err
+}
+
+// Find all DAT files
+func FindDatName(dirname string) ([]string, error) {
+	var findNames []string
+	f, err := os.Open(dirname)
+	if err != nil {
+		return findNames, err
+	}
+	names, err := f.Readdirnames(-1)
+	f.Close()
+	if err != nil {
+		return findNames, err
+	}
+
+	for _, name := range names {
+		if strings.HasSuffix(name, ".DAT") {
+			findNames = append(findNames, name)
+			break
+		}
+	}
+	return findNames, nil
 }

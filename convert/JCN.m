@@ -15,11 +15,11 @@ function [JCN] = JCN(Type,EffectiveT)
 %3=确定性疲劳分析
 %4=防腐面积计算
 if Type==1
-    directory=fullfile('Static PSI','JCNINP.DAT');
+    directory=fullfile('JCNINP.DAT');
 elseif Type==3
-    directory=fullfile('Fatigue','2Deterministic Fatigue','JCNINP.DAT')
+    directory=fullfile('JCNINP.DAT')
 elseif Type==4
-    directory=fullfile('AREA','JCNINP.DAT');
+    directory=fullfile('JCNINP.DAT');
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%核心计算内容%%%%%%%%%%%%%%%%%%%%%%%%%%%

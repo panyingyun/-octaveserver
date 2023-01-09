@@ -1,0 +1,93 @@
+Matlab算法服务指南
+软件即是艺术
+
+Michael.Pan 
+2023年1月9日
+
+* 系统环境 
+
+- Ubuntu 20.04
+- Docker 命令
+
+* Docker安装
+
+    #安装
+    sudo apt-get install ca-certificates curl  gnupg lsb-release
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    echo   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update
+    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+    #非root用户免sudo使用Docker(一定要做，下面的yskj换成你的用户名)
+    sudo gpasswd -a yskj docker  #add yskj to docker group
+    newgrp docker  #刷新用户组
+
+    #查看版本
+    docker version
+    输出client和server版本号即表示安装成功
+
+* Octaveserver功能说明
+
+    该服务将Matlab算法封装为服务并提供Restful-HTTP接口
+    1. server-POST上传一组csv文件
+    2. matlab-调用Matlab算法
+    3. matlab-返回结果
+    4. server-JSON组装多个DAT卡片文件结果返回
+
+
+* Octaveserver代码访问地址及说明
+
+    仓库地址：https://github.com/panyingyun/octaveserver
+    .
+    ├── convert     //matlab算法所在目录，Main.m主入口文件
+    ├── Dockerfile  //docker镜像定义
+    ├── go.mod
+    ├── go.sum
+    ├── images
+    ├── LICENSE
+    ├── main.go     //主程序
+    ├── Makefile
+    ├── README.md
+    ├── slide
+    └── tests
+
+* Octaveserver编译
+
+    docker build -t octaveserver:v1.1  .
+
+
+* Octaveserver运行
+    
+    本地运行
+    docker rm -f octaveserver
+    docker run --restart=always -itd -p 8630:8630 --name octaveserver octaveserver:v1.1
+
+    从镜像仓库中下载并运行
+    docker rm -f octaveserver
+    docker run --restart=always -itd \
+    -p 8630:8630 --name octaveserver harbor.yuansuan.cn/gnuoctave/octaveserver:v1.1
+
+* Octaveserver测试
+
+    cd tests
+    curl -X POST -v --form "inputs=@./matrix.csv" --form "inputs=@./EffectiveT.csv" \
+        http://localhost:8630/convert
+
+    返回结果：
+    {   "code":0,
+        "msg":"Success",
+        "datfiles":
+        [
+            {"datname":"JCNINP.DAT",
+            "datcontent":"JCNOPT IS  MN                     C  NID \            
+            FLFL    SMPT    S     22.01\nRELIEF\nEND"
+            }
+        ]
+    }
+
+
+* 参考文献
+
+.link https://docs.docker.com/get-docker/  docker官方安装指南
